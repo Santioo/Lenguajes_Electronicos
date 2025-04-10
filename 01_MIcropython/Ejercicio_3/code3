@@ -1,0 +1,169 @@
+from machine import Pin
+from utime import sleep
+
+import time
+from machine import Pin
+
+pin_a = Pin(23, Pin.OUT)
+pin_b = Pin(27, Pin.OUT)
+pin_c = Pin(15, Pin.OUT)
+pin_d = Pin(18, Pin.OUT)
+pin_e = Pin(19, Pin.OUT)
+pin_f = Pin(21, Pin.OUT)
+pin_g = Pin(22, Pin.OUT)
+
+def mostrar_digito(digito_hex):
+    if digito_hex == 0:
+        pin_a.value(1)
+        pin_b.value(1)
+        pin_c.value(1)
+        pin_d.value(1)
+        pin_e.value(1)
+        pin_f.value(1)
+        pin_g.value(0)
+    elif digito_hex == 1:
+        pin_a.value(0)
+        pin_b.value(1)
+        pin_c.value(1)
+        pin_d.value(0)
+        pin_e.value(0)
+        pin_f.value(0)
+        pin_g.value(0)
+    elif digito_hex == 2:
+        pin_a.value(1)
+        pin_b.value(1)
+        pin_c.value(0)
+        pin_d.value(1)
+        pin_e.value(1)
+        pin_f.value(0)
+        pin_g.value(1)
+    elif digito_hex == 3:
+        pin_a.value(1)
+        pin_b.value(1)
+        pin_c.value(1)
+        pin_d.value(1)
+        pin_e.value(0)
+        pin_f.value(0)
+        pin_g.value(1)
+    elif digito_hex == 4:
+        pin_a.value(0)
+        pin_b.value(1)
+        pin_c.value(1)
+        pin_d.value(0)
+        pin_e.value(0)
+        pin_f.value(1)
+        pin_g.value(1)
+    elif digito_hex == 5:
+        pin_a.value(1)
+        pin_b.value(0)
+        pin_c.value(1)
+        pin_d.value(1)
+        pin_e.value(0)
+        pin_f.value(1)
+        pin_g.value(1)
+    elif digito_hex == 6:
+        pin_a.value(1)
+        pin_b.value(0)
+        pin_c.value(1)
+        pin_d.value(1)
+        pin_e.value(1)
+        pin_f.value(1)
+        pin_g.value(1)
+    elif digito_hex == 7:
+        pin_a.value(1)
+        pin_b.value(1)
+        pin_c.value(1)
+        pin_d.value(0)
+        pin_e.value(0)
+        pin_f.value(0)
+        pin_g.value(0)
+    elif digito_hex == 8:
+        pin_a.value(1)
+        pin_b.value(1)
+        pin_c.value(1)
+        pin_d.value(1)
+        pin_e.value(1)
+        pin_f.value(1)
+        pin_g.value(1)
+    elif digito_hex == 9:
+        pin_a.value(1)
+        pin_b.value(1)
+        pin_c.value(1)
+        pin_d.value(1)
+        pin_e.value(0)
+        pin_f.value(1)
+        pin_g.value(1)
+    elif digito_hex == 10:
+        pin_a.value(1)
+        pin_b.value(1)
+        pin_c.value(1)
+        pin_d.value(0)
+        pin_e.value(1)
+        pin_f.value(1)
+        pin_g.value(1)
+    elif digito_hex == 11:
+        pin_a.value(0)
+        pin_b.value(0)
+        pin_c.value(1)
+        pin_d.value(1)
+        pin_e.value(1)
+        pin_f.value(1)
+        pin_g.value(1)
+    elif digito_hex == 12:
+        pin_a.value(1)
+        pin_b.value(0)
+        pin_c.value(0)
+        pin_d.value(1)
+        pin_e.value(1)
+        pin_f.value(1)
+        pin_g.value(0)
+    elif digito_hex == 13:
+        pin_a.value(0)
+        pin_b.value(1)
+        pin_c.value(1)
+        pin_d.value(1)
+        pin_e.value(1)
+        pin_f.value(0)
+        pin_g.value(1)
+    elif digito_hex == 14:
+        pin_a.value(1)
+        pin_b.value(0)
+        pin_c.value(0)
+        pin_d.value(1)
+        pin_e.value(1)
+        pin_f.value(1)
+        pin_g.value(1)
+    elif digito_hex == 15:
+        pin_a.value(1)
+        pin_b.value(0)
+        pin_c.value(0)
+        pin_d.value(0)
+        pin_e.value(1)
+        pin_f.value(1)
+        pin_g.value(1)
+    else:
+        print("Dígito hexadecimal no válido:", digito_hex)
+
+
+
+contador = 0
+turno = 0
+
+while True:
+    while(turno == 0):
+        print(contador)
+        mostrar_digito(contador)
+        time.sleep(1)
+        contador = contador + 1
+
+        if (contador == 15):
+            turno = 1
+
+    while(turno == 1):
+        print(contador)
+        mostrar_digito(contador)
+        time.sleep(1)
+        contador = contador - 2
+
+        if (contador == 1):
+            turno = 0
