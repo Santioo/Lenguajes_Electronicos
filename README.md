@@ -1,3 +1,7 @@
-Perez Pradi Santiago
-Pucciariello Alessandro
-Pedalino Lautaro
+# Lenguajes
+
+## Integrantes
+
+- Perez Pradi Santiago
+- Pucciariello Alessandro
+- Pedalino Lautaro
