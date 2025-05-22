@@ -9,8 +9,8 @@ import network
 
 
 # Definiciones
-ssid = 'Wokwi-GUEST'
-wifipassword = ''
+ssid = 'AcáESP32'
+wifipassword = '12345678'
 sta_if = network.WLAN(network.STA_IF)
 sta_if.active(True)
 
@@ -32,7 +32,7 @@ port = 1883
 user = "Santio0o"
 password = "aio_eSdJ57apDS3NfUMv9gsipqHvxsZK"
 client_id_gauge = "Identificador"
-topico_lectura="Santio0o/feeds/lectura2"
+topico_lectura="Santio0o/feeds/Lectura"
 
 
 # Conexión al broker
@@ -58,8 +58,7 @@ def enviar_msg(msg):
        machine.reset()
 # ----
 
-
-print("Holla")
+print("Sistema Inicializado...")
 
 pin_a = Pin(23, Pin.OUT)
 pin_b = Pin(27, Pin.OUT)
@@ -252,4 +251,5 @@ while True:
         contador = 15
     elif contador <= 0:
         contador = 0
+
 
