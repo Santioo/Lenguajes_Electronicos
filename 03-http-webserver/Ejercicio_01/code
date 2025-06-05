@@ -1,65 +1,209 @@
+import machine
+import time
 import network
 import urequests
-import time
-import usocket as socket
-from machine import Pin
+import ujson
+from umqtt.simple import MQTTClient
 
+# Definiciones
 ssid = 'AcáESP32'
-password = '12345678'
+wifipassword = '12345678'
+sta_if = network.WLAN(network.STA_IF)
+sta_if.active(True)
 
-station = network.WLAN(network.STA_IF)
-station.active(True)
-station.connect(ssid, password)
+# Conexión a internet
+sta_if.connect(ssid, wifipassword)
+print("Conectando")
+while not sta_if.isconnected():
+    print(".", end="")
+    time.sleep(0.1)
+print("")
+print("Conectado a Internet")
 
-led = Pin(2, Pin.OUT)
+# Conexión a los tópicos
+mqtt_server = "io.adafruit.com"
+port = 1883
+user = "Santio0o"
+password = "aio_eSdJ57apDS3NfUMv9gsipqHvxsZK"
+client_id_gauge = "Identificador"
+topico_distancia = "Santio0o/feeds/distancia"
+topico_estado = "Santio0o/feeds/estado"
+topico_sonando = "Santio0o/feeds/sonando"
 
-# Asegurarse que se conectó a internet
-while not station.isconnected():
-    print(".")
-    time.sleep(0.2)
+# Conexión al broker
+try:
+    conexionMQTT = MQTTClient(client_id_gauge, mqtt_server, user=user, password=password, port=int(port))
+    conexionMQTT.connect()
+    print("Conectado con Broker MQTT")
+except OSError as e:
+    print("Fallo la conexion al Broker, reiniciando...")
+    time.sleep(5)
+    machine.reset()
+    
+    
+# Conexión Bot Telegram
+bot_token = '7949425940:AAHXBY1pzvLf7jMafJGH4KISUPMTOWc6Otc' #token
+chat_id = '-4812447513'  # Chat id del chat a enviar el mensaje
 
-print(f'Connectado a wifi {ssid}')
-print(station.ifconfig())
+# Funciones
+def alarma_activada():
+    message = estado_texto
+    url = f'https://api.telegram.org/bot{bot_token}/sendMessage'
+    payload = {
+        'chat_id': chat_id,
+        'text': message
+    }
+    headers = {'Content-Type': 'application/json'}
+    response = urequests.post(url, headers=headers, data=ujson.dumps(payload))
+    print('Response status:', response.status_code)
+    print('Response text:', response.text)
+    response.close()
+
+def alarma_apagada():
+    message = 'Alarma Apagada'
+    url = f'https://api.telegram.org/bot{bot_token}/sendMessage'
+    payload = {
+        'chat_id': chat_id,
+        'text': message
+    }
+    headers = {'Content-Type': 'application/json'}
+    response = urequests.post(url, headers=headers, data=ujson.dumps(payload))
+    print('Response status:', response.status_code)
+    print('Response text:', response.text)
+    response.close()
+
+def alarma_sonando():
+    message = 'Alarma Sonando!'
+    url = f'https://api.telegram.org/bot{bot_token}/sendMessage'
+    payload = {
+        'chat_id': chat_id,
+        'text': message
+    }
+    headers = {'Content-Type': 'application/json'}
+    response = urequests.post(url, headers=headers, data=ujson.dumps(payload))
+    print('Response status:', response.status_code)
+    print('Response text:', response.text)
+    response.close()
+    
+def sonido_apagado():
+    message = 'Sonido Apagado'
+    url = f'https://api.telegram.org/bot{bot_token}/sendMessage'
+    payload = {
+        'chat_id': chat_id,
+        'text': message
+    }
+    headers = {'Content-Type': 'application/json'}
+    response = urequests.post(url, headers=headers, data=ujson.dumps(payload))
+    print('Response status:', response.status_code)
+    print('Response text:', response.text)
+    response.close()
+    
+def enviar_msg(topico, msg):
+    try:
+        conexionMQTT.publish(topico, str(msg))
+        print(f'Mensaje enviado con exito al tópico {topico}: {msg}')
+    except OSError as e:
+        print("Error ", e)
+        time.sleep(5)
+        machine.reset()
 
 
-def web_page():
-  if led.value() == 1:
-    gpio_state="ON"
-  else:
-    gpio_state="OFF"
-  
-  html = """<html><head> <title>ESP Web Server</title> <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" href="data:,"> <style>html{font-family: Helvetica; display:inline-block; margin: 0px auto; text-align: center;}
-  h1{color: #0F3376; padding: 2vh;}p{font-size: 1.5rem;}.button{display: inline-block; background-color: #e7bd3b; border: none; 
-  border-radius: 4px; color: white; padding: 16px 40px; text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}
-  .button2{background-color: #4286f4;}</style></head><body> <h1>ESP Web Server</h1> 
-  <p>GPIO state: <strong>""" + gpio_state + """</strong></p><p><a href="/?led=on"><button class="button">ON</button></a></p>
-  <p><a href="/?led=off"><button class="button button2">OFF</button></a></p></body></html>"""
-  return html
+print("Sistema Inicializado...")
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.bind(('', 80))
-s.listen(5)
+TRIG = machine.Pin(5, machine.Pin.OUT)  #Pin para el trigger del ultrasonido
+ECHO = machine.Pin(18, machine.Pin.IN)  #Pin para el echo del ultrasonido
+BUZZER = machine.Pin(15, machine.Pin.OUT)  #Pin para el buzzer
+BOTON = machine.Pin(4, machine.Pin.IN, machine.Pin.PULL_UP)  #Pin para el botón
+LED_ESTADO = machine.Pin(2, machine.Pin.OUT)  #LED que muestra si la alarma está encendida
+LED_SONANDO = machine.Pin(19, machine.Pin.OUT)  #LED que parpadea si el buzzer suena
 
-print("Levantando web server")
+alarma_encendida = False
+distancia_maxima = 50  #Distancia a la que se activa la alarma
+ultimo_estado_boton = 1  #Para detecctar los ambio en el botón
+ultimo_estado_enviado = "Apagada"  #Para rastrear cambios en el estado
+ultimo_sonando_enviado = "NO"  #Para rastrear cambios en el estado del buzzer
+
+enviar_msg(topico_distancia, distancia_maxima)
+enviar_msg(topico_estado, "Apagada")
+enviar_msg(topico_sonando, "NO")
+alarma_apagada()
+sonido_apagado()
+
+def medir_distancia():
+    TRIG.value(0)
+    time.sleep_us(2)
+    TRIG.value(1) #Enviamos un pulso de 10 microsegundos
+    time.sleep_us(10)
+    TRIG.value(0)
+
+    while ECHO.value() == 0: #Esperamos a que el pin echo se ponga en alto
+        pass
+    inicio = time.ticks_us()  #Guardamos el tiermpo inicial
+    while ECHO.value() == 1: #Esperamos a que el pin echo se ponga en bajo
+        pass
+    fin = time.ticks_us()  #Guardamos el tiempo final
+    duracion = time.ticks_diff(fin, inicio)
+    distancia = (duracion * 0.034) / 2 
+    return distancia
 
 while True:
-  conn, addr = s.accept()
-  print('Got a connection from %s' % str(addr))
-  request = conn.recv(1024)
-  request = str(request)
-  print('Content = %s' % request)
-  led_on = request.find('/?led=on')
-  led_off = request.find('/?led=off')
-  if led_on == 6:
-    print('LED ON')
-    led.value(1)
-  if led_off == 6:
-    print('LED OFF')
-    led.value(0)
-  response = web_page()
-  conn.send('HTTP/1.1 200 OK\n')
-  conn.send('Content-Type: text/html\n')
-  conn.send('Connection: close\n\n')
-  conn.sendall(response)
-  conn.close()
+    estado_boton = BOTON.value() #leemos el estado del boton
+    
+    if estado_boton == 0 and ultimo_estado_boton == 1: #Nos fijamos si el boton fue presionado
+        alarma_encendida = not alarma_encendida  #cambiamos el estado de la alarma
+        LED_ESTADO.value(alarma_encendida)
+        estado_texto = "Encendida" if alarma_encendida else "Apagada"
+        if estado_texto != ultimo_estado_enviado:
+            enviar_msg(topico_estado, estado_texto)
+            alarma_activada()
+            ultimo_estado_enviado = estado_texto
+
+        BUZZER.value(0)
+        LED_SONANDO.value(0)
+        if ultimo_sonando_enviado != "NO":
+            enviar_msg(topico_sonando, "NO")
+            sonido_apagado()
+            ultimo_sonando_enviado = "NO"
+        time.sleep(0.2)  #antirebote
+    
+    ultimo_estado_boton = estado_boton  #guardamos el último estado del botón
+    
+    if alarma_encendida: #si la alarma está encendidad
+        distancia = medir_distancia()
+
+        if distancia < distancia_maxima: #si distancia es menor activa la alrma
+            BUZZER.value(1)
+            LED_SONANDO.value(1)
+
+            if ultimo_sonando_enviado != "SONANDO":
+                enviar_msg(topico_sonando, "SONANDO")
+                alarma_sonando()
+                ultimo_sonando_enviado = "SONANDO"
+
+            time.sleep(0.5)
+            BUZZER.value(0)
+            LED_SONANDO.value(0)
+            time.sleep(0.5)
+        else: #En caso de que no apaga todo
+            BUZZER.value(0)
+            LED_SONANDO.value(0)
+
+            if ultimo_sonando_enviado != "NO":
+                enviar_msg(topico_sonando, "NO")
+                sonido_apagado()
+                ultimo_sonando_enviado = "NO"
+    else:
+        BUZZER.value(0)  
+        LED_SONANDO.value(0) 
+
+        if ultimo_estado_enviado != "Apagada":
+            enviar_msg(topico_estado, "Apagada")
+            alarma_apagada()
+            ultimo_estado_enviado = "Apagada"
+
+        if ultimo_sonando_enviado != "NO":
+            enviar_msg(topico_sonando, "NO")
+            sonido_apagado()
+            ultimo_sonando_enviado = "NO"
+
+    time.sleep(0.1)
