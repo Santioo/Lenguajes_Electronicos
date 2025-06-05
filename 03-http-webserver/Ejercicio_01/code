@@ -46,8 +46,13 @@ bot_token = '7949425940:AAHXBY1pzvLf7jMafJGH4KISUPMTOWc6Otc' #token
 chat_id = '-4812447513'  # Chat id del chat a enviar el mensaje
 
 # Funciones
-def alarma_activada():
-    message = estado_texto
+def mensaje():
+    message = f"""
+      ========================
+    || Distancia configurada: {distancia_maxima} ||
+    || Estado: {estado_texto}              ||
+    || Sonando? {sonando}                    ||
+    ======================"""
     url = f'https://api.telegram.org/bot{bot_token}/sendMessage'
     payload = {
         'chat_id': chat_id,
@@ -58,76 +63,6 @@ def alarma_activada():
     print('Response status:', response.status_code)
     print('Response text:', response.text)
     response.close()
-
-def alarma_apagada():
-    message = 'Alarma Apagada'
-    url = f'https://api.telegram.org/bot{bot_token}/sendMessage'
-    payload = {
-        'chat_id': chat_id,
-        'text': message
-    }
-    headers = {'Content-Type': 'application/json'}
-    response = urequests.post(url, headers=headers, data=ujson.dumps(payload))
-    print('Response status:', response.status_code)
-    print('Response text:', response.text)
-    response.close()
-
-def alarma_sonando():
-    message = 'Alarma Sonando!'
-    url = f'https://api.telegram.org/bot{bot_token}/sendMessage'
-    payload = {
-        'chat_id': chat_id,
-        'text': message
-    }
-    headers = {'Content-Type': 'application/json'}
-    response = urequests.post(url, headers=headers, data=ujson.dumps(payload))
-    print('Response status:', response.status_code)
-    print('Response text:', response.text)
-    response.close()
-    
-def sonido_apagado():
-    message = 'Sonido Apagado'
-    url = f'https://api.telegram.org/bot{bot_token}/sendMessage'
-    payload = {
-        'chat_id': chat_id,
-        'text': message
-    }
-    headers = {'Content-Type': 'application/json'}
-    response = urequests.post(url, headers=headers, data=ujson.dumps(payload))
-    print('Response status:', response.status_code)
-    print('Response text:', response.text)
-    response.close()
-    
-def enviar_msg(topico, msg):
-    try:
-        conexionMQTT.publish(topico, str(msg))
-        print(f'Mensaje enviado con exito al tópico {topico}: {msg}')
-    except OSError as e:
-        print("Error ", e)
-        time.sleep(5)
-        machine.reset()
-
-
-print("Sistema Inicializado...")
-
-TRIG = machine.Pin(5, machine.Pin.OUT)  #Pin para el trigger del ultrasonido
-ECHO = machine.Pin(18, machine.Pin.IN)  #Pin para el echo del ultrasonido
-BUZZER = machine.Pin(15, machine.Pin.OUT)  #Pin para el buzzer
-BOTON = machine.Pin(4, machine.Pin.IN, machine.Pin.PULL_UP)  #Pin para el botón
-LED_ESTADO = machine.Pin(2, machine.Pin.OUT)  #LED que muestra si la alarma está encendida
-LED_SONANDO = machine.Pin(19, machine.Pin.OUT)  #LED que parpadea si el buzzer suena
-
-alarma_encendida = False
-distancia_maxima = 50  #Distancia a la que se activa la alarma
-ultimo_estado_boton = 1  #Para detecctar los ambio en el botón
-ultimo_estado_enviado = "Apagada"  #Para rastrear cambios en el estado
-ultimo_sonando_enviado = "NO"  #Para rastrear cambios en el estado del buzzer
-
-enviar_msg(topico_distancia, distancia_maxima)
-enviar_msg(topico_estado, "Apagada")
-enviar_msg(topico_sonando, "NO")
-alarma_apagada()
-sonido_apagado()
 
 def medir_distancia():
     TRIG.value(0)
@@ -146,6 +81,38 @@ def medir_distancia():
     distancia = (duracion * 0.034) / 2 
     return distancia
 
+def enviar_msg(topico, msg):
+    try:
+        conexionMQTT.publish(topico, str(msg))
+        print(f'Mensaje enviado con exito al tópico {topico}: {msg}')
+    except OSError as e:
+        print("Error ", e)
+        time.sleep(5)
+        machine.reset()
+
+print("Sistema Inicializado...")
+
+TRIG = machine.Pin(5, machine.Pin.OUT)  #Pin para el trigger del ultrasonido
+ECHO = machine.Pin(18, machine.Pin.IN)  #Pin para el echo del ultrasonido
+BUZZER = machine.Pin(15, machine.Pin.OUT)  #Pin para el buzzer
+BOTON = machine.Pin(4, machine.Pin.IN, machine.Pin.PULL_UP)  #Pin para el botón
+LED_ESTADO = machine.Pin(2, machine.Pin.OUT)  #LED que muestra si la alarma está encendida
+LED_SONANDO = machine.Pin(19, machine.Pin.OUT)  #LED que parpadea si el buzzer suena
+
+alarma_encendida = False
+distancia_maxima = 5  #Distancia a la que se activa la alarma
+ultimo_estado_boton = 1  #Para detecctar los ambio en el botón
+ultimo_estado_enviado = "Apagada"  #Para rastrear cambios en el estado
+ultimo_sonando_enviado = "NO"  #Para rastrear cambios en el estado del buzzer
+sonando = "NO"
+estado_texto = "Apagada"
+
+enviar_msg(topico_distancia, distancia_maxima)
+enviar_msg(topico_estado, "Apagada")
+enviar_msg(topico_sonando, "NO")
+mensaje()
+
+
 while True:
     estado_boton = BOTON.value() #leemos el estado del boton
     
@@ -155,15 +122,16 @@ while True:
         estado_texto = "Encendida" if alarma_encendida else "Apagada"
         if estado_texto != ultimo_estado_enviado:
             enviar_msg(topico_estado, estado_texto)
-            alarma_activada()
+            mensaje()
             ultimo_estado_enviado = estado_texto
 
         BUZZER.value(0)
         LED_SONANDO.value(0)
         if ultimo_sonando_enviado != "NO":
             enviar_msg(topico_sonando, "NO")
-            sonido_apagado()
+            sonando = "NO"
             ultimo_sonando_enviado = "NO"
+            mensaje()
         time.sleep(0.2)  #antirebote
     
     ultimo_estado_boton = estado_boton  #guardamos el último estado del botón
@@ -177,8 +145,9 @@ while True:
 
             if ultimo_sonando_enviado != "SONANDO":
                 enviar_msg(topico_sonando, "SONANDO")
-                alarma_sonando()
+                sonando =  "SÍ"
                 ultimo_sonando_enviado = "SONANDO"
+                mensaje()
 
             time.sleep(0.5)
             BUZZER.value(0)
@@ -190,20 +159,22 @@ while True:
 
             if ultimo_sonando_enviado != "NO":
                 enviar_msg(topico_sonando, "NO")
-                sonido_apagado()
+                sonando =  "NO"
                 ultimo_sonando_enviado = "NO"
+                mensaje()
     else:
         BUZZER.value(0)  
         LED_SONANDO.value(0) 
 
         if ultimo_estado_enviado != "Apagada":
             enviar_msg(topico_estado, "Apagada")
-            alarma_apagada()
             ultimo_estado_enviado = "Apagada"
+            mensaje()
 
         if ultimo_sonando_enviado != "NO":
             enviar_msg(topico_sonando, "NO")
-            sonido_apagado()
+            sonando = "NO"
             ultimo_sonando_enviado = "NO"
+            mensaje()
 
     time.sleep(0.1)
