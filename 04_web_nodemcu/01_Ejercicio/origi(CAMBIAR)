@@ -1,0 +1,31 @@
+from flask import Flask, Response, request
+from datetime import datetime
+import json
+
+app = Flask(__name__)
+
+USERNAME = "Estudiantes"
+PASSWORD = "educar_2018"
+
+@app.route('/')
+def home():
+    return Response("Web dummy para pruebas - Lenguajes Electrónicos", status=200)
+
+@app.route('/secret')
+def secret():
+    auth = request.authorization
+    if auth and auth.username == USERNAME and auth.password == PASSWORD:
+        return Response("Esto es un secreto", status=200)
+    return Response("Acceso no autorizado", status=401)
+
+@app.route('/time')
+def time():
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return Response(current_time, status=200)
+
+@app.route('/error')
+def error():
+    return Response("Error de servidor", status=500)
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5050)
